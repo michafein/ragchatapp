@@ -1,0 +1,368 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    background: rgb(44, 47, 59);
+    background: -webkit-linear-gradient(to right, rgb(40, 59, 34), rgb(54, 60, 70), rgb(32, 32, 43));
+    background: linear-gradient(to right, rgb(38, 51, 61), rgb(50, 55, 65), rgb(33, 33, 78));
+}
+
+/* Center the chat vertically */
+.chat {
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* Main chat container */
+.card {
+    height: 700px;
+    border-radius: 15px !important;
+    background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Scrollable contacts section */
+.contacts_body {
+    padding: 0.75rem 0 !important;
+    overflow-y: auto;
+    white-space: nowrap;
+}
+
+/* Scrollable message container */
+.msg_card_body {
+    overflow-y: auto;
+}
+
+/* Header styling */
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: 0 !important;
+}
+
+/* Footer styling */
+.card-footer {
+    border-radius: 0 0 15px 15px !important;
+    border-top: 0 !important;
+}
+
+/* Center the container */
+.container {
+    align-content: center;
+}
+
+/* Search input styling */
+.search {
+    border-radius: 15px 0 0 15px !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 0 !important;
+    color: rgb(219, 219, 219) !important;
+}
+
+/* Remove focus outline */
+.search:focus {
+    box-shadow: none !important;
+    outline: 0px !important;
+}
+
+/* Message input field */
+.type_msg {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 0 !important;
+    color: rgb(219, 219, 219) !important;
+    height: 60px !important;
+    overflow-y: auto;
+}
+
+/* Remove focus outline for message input */
+.type_msg:focus {
+    box-shadow: none !important;
+    outline: 0px !important;
+}
+
+/* Attach button styling */
+.attach_btn {
+    border-radius: 15px 0 0 15px !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 0 !important;
+    color: rgb(221, 219, 219) !important;
+    cursor: pointer;
+}
+
+/* Send button styling */
+.send_btn {
+    border-radius: 0 15px 15px 0 !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 0 !important;
+    color: rgb(219, 219, 219) !important;
+    cursor: pointer;
+}
+
+/* Search button styling */
+.search_btn {
+    border-radius: 0 15px 15px 0 !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 0 !important;
+    color: rgb(216, 216, 216) !important;
+    cursor: pointer;
+}
+
+/* Contact list */
+.contacts {
+    list-style: none;
+    padding: 0;
+}
+
+/* Contact list items */
+.contacts li {
+    width: 100% !important;
+    padding: 5px 10px;
+    margin-bottom: 15px !important;
+}
+
+/* Highlight the active chat */
+.active {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Profile image sizes */
+.user_img {
+    height: 70px;
+    width: 70px;
+    border: 1.5px solid #f5f6fa;
+}
+
+.user_img_msg {
+    height: 40px;
+    width: 40px;
+    border: 1.5px solid #f5f6fa;
+}
+
+/* Profile image container */
+.img_cont {
+    position: relative;
+    height: 70px;
+    width: 70px;
+}
+
+.img_cont_msg {
+    height: 40px;
+    width: 40px;
+}
+
+/* Online status indicator */
+.online_icon {
+    position: absolute;
+    height: 15px;
+    width: 15px;
+    background-color: #4cd137; /* Bright green for online */
+    border-radius: 50%;
+    bottom: 0.2em;
+    right: 0.4em;
+    border: 1.5px solid rgb(219, 219, 219);
+}
+
+/* Offline status indicator */
+.offline {
+    background-color: #c23616 !important;
+}
+
+/* User info styling */
+.user_info {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: 15px;
+}
+
+.user_info span {
+    font-size: 20px;
+    color: rgb(219, 219, 219);
+}
+
+.user_info p {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Video call button spacing */
+.video_cam {
+    margin-left: 50px;
+    margin-top: 5px;
+}
+
+/* Video call button styling */
+.video_cam span {
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+
+/* Incoming message styling */
+.msg_cotainer {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: 10px;
+    border-radius: 20px;
+    background-color: #5680a8; /* Soft blue */
+    padding: 12px;
+    position: relative;
+}
+
+/* Sent message styling */
+.msg_cotainer_send {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-right: 10px;
+    border-radius: 20px;
+    background-color: #61aa88; /* Soft green for sent messages */
+    padding: 12px;
+    position: relative;
+}
+
+/* Message timestamp */
+.msg_time {
+    position: absolute;
+    left: 0;
+    bottom: -15px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+}
+
+.msg_time_send {
+    position: absolute;
+    right: 0;
+    bottom: -15px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+}
+
+/* Chat header */
+.msg_head {
+    position: relative;
+}
+
+/* Action menu button */
+#action_menu_btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    color: rgb(204, 204, 204);
+    cursor: pointer;
+    font-size: 20px;
+}
+
+/* Dropdown action menu */
+.action_menu {
+    z-index: 1;
+    position: absolute;
+    padding: 15px 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border-radius: 15px;
+    top: 30px;
+    right: 15px;
+    display: none;
+}
+
+.action_menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.action_menu ul li {
+    width: 100%;
+    padding: 10px 15px;
+    margin-bottom: 5px;
+}
+
+.action_menu ul li i {
+    padding-right: 10px;
+}
+
+.action_menu ul li:hover {
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile responsiveness */
+@media(max-width: 576px) {
+    .contacts_card {
+        margin-bottom: 15px !important;
+    }
+}
+
+/* Sidebar styling */
+.sidebar {
+    position: fixed;
+    right: -30%; /* Initially off-screen */
+    top: 0;
+    width: 25%;
+    height: 100%;
+    background-color: #5b7fa3; /* Dark blue */
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    overflow-y: auto;
+    transition: right 0.3s ease-in-out;
+}
+
+.sidebar.active {
+    right: 0; /* Slide in */
+}
+
+/* Small adjustments for buttons in the sidebar */
+.sidebar .btn {
+    background-color: #729fc9; /* Blue for buttons */
+    border-radius: 10px;
+    padding: 10px;
+    color: white;
+    margin: 10px 0;
+}
+
+.sidebar .btn:hover {
+    background-color: #4e6e8b; /* Darker blue tone on hover */
+}
+
+/* Style for the "Show/Hide Sources" button */
+.toggle-button {
+    margin-left: 60px; /* Moves the button to the right, aligned with the time */
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+/* Style for the "Show/Hide Sources" button */
+.toggle-button button {
+    background-color: #4f948e; /* Green background color */
+    color: white; /* White text color */
+    border: none; /* No border */
+    border-radius: 8px; /* Rounded corners */
+    padding: 8px 16px; /* Padding */
+    font-size: 14px; /* Font size */
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Animations */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Shadow for a modern look */
+}
+
+.toggle-button button:hover {
+    background-color: #219b87; /* Darker green tone on hover */
+    transform: translateY(-2px); /* Slight effect on hover */
+}
+
+.toggle-button button:active {
+    transform: translateY(0); /* Return to normal position when clicked */
+}
+
+/* Style for the loading symbol next to the chatbot icon */
+.loader-container {
+    display: flex;
+    align-items: center;
+    margin-left: 10px; /* Space from the chatbot icon */
+}
+
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3daee2;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+   display:none;/* Initially hidden */ 
+}

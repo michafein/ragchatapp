@@ -1,0 +1,30 @@
+# Ignoriere virtuelle Umgebungen
+.venv/
+venv/
+env/
+.env
+
+# Ignoriere Python-Cache-Dateien
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignoriere temporäre Dateien und Logs
+tmp/
+logs/
+*.log
+
+# Ignoriere IDE-spezifische Dateien
+.vscode/
+.idea/
+
+# Ignoriere Git-Verzeichnis
+.git/
+
+# Ignoriere andere unnötige Dateien
+*.swp
+*.swo
+
+# Ignoriere den tests-Ordner
+tests/
