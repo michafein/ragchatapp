@@ -2,7 +2,7 @@ import os
 import json
 import requests
 import traceback
-import torch
+import numpy as np
 import logging
 from flask import Flask, render_template, request, jsonify
 from sentence_transformers import util
@@ -42,6 +42,10 @@ else:
 
 text_chunks = [chunk["sentence_chunk"] for chunk in pages_and_chunks]
 embeddings = load_or_generate_embeddings(text_chunks)
+
+# Calculate the cosine similarities
+def cosine_similarity(vec1, vec2):
+    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> list[tuple[dict, float]]:
     """
@@ -94,14 +98,15 @@ def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> l
 
     # Convert the embedding data into a tensor
     try:
-        query_embedding = torch.tensor(query_embeddings).squeeze()
+        query_embedding = np.array(query_embeddings).squeeze()
     except Exception as e:
         logger.error(f"Error converting embedding data to tensor: {e}")
         raise RuntimeError(f"Error converting embedding data to tensor: {e}")
 
     # Calculate the similarities
-    dot_scores = util.dot_score(query_embedding, embeddings)[0]
-    scores, indices = torch.topk(dot_scores, k=n_resources_to_return)
+    dot_scores = np.array([cosine_similarity(query_embedding, emb) for emb in embeddings])
+    indices = np.argsort(dot_scores)[-n_resources_to_return:][::-1]
+    scores = dot_scores[indices]
 
     # Return the top results with their scores
     return [(pages_and_chunks[i], float(scores[idx])) for idx, i in enumerate(indices)]
