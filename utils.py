@@ -1,6 +1,5 @@
 import os
-import torch
-from sentence_transformers import util
+import numpy as np
 import requests
 from tqdm import tqdm
 import fitz  # PyMuPDF
@@ -47,10 +46,14 @@ def preprocess_and_chunk(pdf_path: str):
             })
     return pages_and_chunks
 
+def cosine_similarity(vec1, vec2):
+    """Calculates the cosine similarity between two vectors."""
+    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+
 def load_or_generate_embeddings(text_chunks, batch_size=32):
     """Loads or generates embeddings for the text chunks."""
-    if os.path.exists("embeddings.pt"):
-        return torch.load("embeddings.pt")
+    if os.path.exists("embeddings.npy"):
+        return np.load("embeddings.npy")
     
     embeddings = []
     for i in tqdm(range(0, len(text_chunks), batch_size)):
@@ -68,9 +71,9 @@ def load_or_generate_embeddings(text_chunks, batch_size=32):
         else:
             raise RuntimeError(f"Error in embedding request: {response.status_code}, {response.text}")
     
-    embeddings_tensor = torch.tensor(embeddings)
-    torch.save(embeddings_tensor, "embeddings.pt")
-    return embeddings_tensor
+    embeddings_array = np.array(embeddings)
+    np.save("embeddings.npy", embeddings_array)
+    return embeddings_array
 
 def make_api_request(url: str, payload: dict, error_msg: str) -> dict:
     try:

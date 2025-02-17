@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-import torch
+import numpy as np
 import os
 import fitz  # PyMuPDF
 from utils import (
@@ -97,12 +97,12 @@ class TestUtils(unittest.TestCase):
         # Teste, ob Embeddings korrekt generiert werden
         text_chunks = ["Test sentence"]
         embeddings = load_or_generate_embeddings(text_chunks)
-        self.assertIsInstance(embeddings, torch.Tensor)
+        self.assertIsInstance(embeddings, np.ndarray)  # Jetzt wird ein numpy-Array zurückgegeben
 
         # Teste, ob vorhandene Embeddings geladen werden
-        with patch("os.path.exists", return_value=True), patch("torch.load", return_value=torch.tensor([[0.1, 0.2, 0.3]])):
+        with patch("os.path.exists", return_value=True), patch("numpy.load", return_value=np.array([[0.1, 0.2, 0.3]])):
             embeddings = load_or_generate_embeddings(text_chunks)
-            self.assertIsInstance(embeddings, torch.Tensor)
+            self.assertIsInstance(embeddings, np.ndarray)  # Jetzt wird ein numpy-Array zurückgegeben
 
     def test_nlp_pipeline(self):
         """Testet die spaCy-Pipeline."""

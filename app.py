@@ -5,13 +5,13 @@ import traceback
 import numpy as np
 import logging
 from flask import Flask, render_template, request, jsonify
-from sentence_transformers import util
 from config import Config
 from utils import (
     text_formatter,
     preprocess_and_chunk,
     load_or_generate_embeddings,
-    make_api_request
+    make_api_request,
+    cosine_similarity
 )
 
 
@@ -43,9 +43,6 @@ else:
 text_chunks = [chunk["sentence_chunk"] for chunk in pages_and_chunks]
 embeddings = load_or_generate_embeddings(text_chunks)
 
-# Calculate the cosine similarities
-def cosine_similarity(vec1, vec2):
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> list[tuple[dict, float]]:
     """
