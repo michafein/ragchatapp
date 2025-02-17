@@ -6,6 +6,7 @@ from tqdm import tqdm
 import fitz  # PyMuPDF
 import spacy
 from config import Config
+import logging
 
 # Initialize spaCy for sentence splitting
 nlp = spacy.blank("en")
@@ -70,3 +71,12 @@ def load_or_generate_embeddings(text_chunks, batch_size=32):
     embeddings_tensor = torch.tensor(embeddings)
     torch.save(embeddings_tensor, "embeddings.pt")
     return embeddings_tensor
+
+def make_api_request(url: str, payload: dict, error_msg: str) -> dict:
+    try:
+        response = requests.post(url, json=payload, timeout=30)
+        response.raise_for_status()  # Raises an HTTPError for bad responses
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"{error_msg}: {str(e)}")
+        raise RuntimeError(f"{error_msg}: {str(e)}")

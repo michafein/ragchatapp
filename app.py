@@ -3,13 +3,15 @@ import json
 import requests
 import traceback
 import torch
+import logging
 from flask import Flask, render_template, request, jsonify
 from sentence_transformers import util
 from config import Config
 from utils import (
     text_formatter,
     preprocess_and_chunk,
-    load_or_generate_embeddings
+    load_or_generate_embeddings,
+    make_api_request
 )
 
 
@@ -17,6 +19,18 @@ from utils import (
 # Initialize Flask app
 app = Flask(__name__)
 
+
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("chatbot.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 if not os.path.exists("pages_and_chunks.json"):
     pages_and_chunks = preprocess_and_chunk(Config.PDF_PATH)
@@ -29,41 +43,67 @@ else:
 text_chunks = [chunk["sentence_chunk"] for chunk in pages_and_chunks]
 embeddings = load_or_generate_embeddings(text_chunks)
 
-def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5):
-    """Finds relevant text sections based on the query."""
+def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> list[tuple[dict, float]]:
+    """
+    Finds relevant text sections based on the query.
+
+    Args:
+        query (str): The user's query.
+        n_resources_to_return (int): Number of results to return. Defaults to 5.
+
+    Returns:
+        list[tuple[dict, float]]: List of tuples containing the text chunk and its relevance score.
+
+    Raises:
+        RuntimeError: If there is an error in the API request or data processing.
+    """
+    # Define the payload for the embedding API request
     payload = {"input": query, "model": Config.EMBEDDING_MODEL_NAME}
-    response = requests.post(Config.LM_STUDIO_EMBEDDING_API_URL, json=payload)
-    
-    if response.status_code != 200:
-        raise RuntimeError(f"Error in embedding request: {response.status_code}, {response.text}")
-    
-    # Debugging: Print the entire API response
-    api_response = response.json()
-    print("API Response (Query):", api_response)
-    
+
+    # Use the centralized API request function
+    try:
+        api_response = make_api_request(
+            url=Config.LM_STUDIO_EMBEDDING_API_URL,
+            payload=payload,
+            error_msg="Embedding API Error"
+        )
+    except RuntimeError as e:
+        logger.error(f"Failed to retrieve embeddings: {str(e)}")
+        raise
+
+    # Debugging: Log the API response
+    logger.debug(f"API Response (Query): {api_response}")
+
     # Extract the embedding data
     embedding_data = api_response.get("data", [])
-    print("Embedding Data (Query):", embedding_data)
-    
-    # Check if the embedding data is correct
+    logger.debug(f"Embedding Data (Query): {embedding_data}")
+
+    # Validate the embedding data
     if not embedding_data or not isinstance(embedding_data, list):
+        logger.error("Unexpected format of embedding data.")
         raise RuntimeError("Unexpected format of embedding data.")
-    
+
     # Extract the embedding vectors
-    query_embeddings = [item["embedding"] for item in embedding_data if isinstance(item, dict) and "embedding" in item]
+    query_embeddings = [
+        item["embedding"] for item in embedding_data
+        if isinstance(item, dict) and "embedding" in item
+    ]
     if not query_embeddings:
+        logger.error("No embedding data found in API response.")
         raise RuntimeError("No embedding data found in API response.")
-    
+
     # Convert the embedding data into a tensor
     try:
         query_embedding = torch.tensor(query_embeddings).squeeze()
     except Exception as e:
-        print("Error converting embedding data to tensor:", e)
+        logger.error(f"Error converting embedding data to tensor: {e}")
         raise RuntimeError(f"Error converting embedding data to tensor: {e}")
-    
+
     # Calculate the similarities
     dot_scores = util.dot_score(query_embedding, embeddings)[0]
     scores, indices = torch.topk(dot_scores, k=n_resources_to_return)
+
+    # Return the top results with their scores
     return [(pages_and_chunks[i], float(scores[idx])) for idx, i in enumerate(indices)]
 
 def format_combined_summary_and_sources(results):
