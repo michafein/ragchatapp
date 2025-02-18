@@ -12,3 +12,8 @@ __pycache__/
 # IDE / OS spezifische Dateien
 .vscode/
 .DS_Store
+
+# Ignore generated files
+embeddings.npy
+pages_and_chunks.json
+human-nutrition-text.pdf
