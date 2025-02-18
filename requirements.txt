@@ -1,7 +1,6 @@
 flask
-numpy<2
+numpy>2
 requests>2.26.0
-sentence-transformers
 tqdm>4.62.0
 PyMuPDF
 spacy
