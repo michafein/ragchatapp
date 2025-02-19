@@ -25,6 +25,48 @@
                 msgCardBody.scrollTop = msgCardBody.scrollHeight;
             }
 
+            // Function to handle PDF upload
+            function uploadPDF() {
+                var fileInput = document.getElementById("pdfUpload");
+                var file = fileInput.files[0];
+                if (!file) {
+                    alert("Please select a PDF file to upload.");
+                    return;
+                }
+
+                var formData = new FormData();
+                formData.append("file", file);
+
+                // Show loading spinner during upload
+                var loadingHtml = '<div id="loading-container" class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="{{ url_for("static", filename="chatbot.png") }}" class="rounded-circle user_img_msg"></div><div class="loader-container"><div id="loading" class="loader"></div></div></div>';
+                $("#messageFormeight").append(loadingHtml);
+                $("#loading").show();
+
+                // Send AJAX request to upload the PDF
+                $.ajax({
+                    url: "/upload",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $("#loading").hide();
+                        $("#loading-container").remove();
+                        alert("PDF uploaded and processed successfully!");
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        $("#loading").hide();
+                        $("#loading-container").remove();
+                        alert("Error uploading PDF: " + errorThrown);
+                    }
+                });
+            }
+
+            // Trigger file input when the upload button is clicked
+            $("#pdfUpload").on("change", function() {
+                uploadPDF();
+            });
+
             $("#messageArea").submit(function(event) {
                 event.preventDefault();
                 var userImagePath = "{{ url_for('static', filename='chatbot.png') }}";
@@ -62,8 +104,8 @@
                         var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="' + userImagePath + '" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data.response + '<span class="msg_time">' + str_time + '</span></div></div>';
                         $("#messageFormeight").append($.parseHTML(botHtml));
 
-                        // Load sources into the sidebar
-                        if (data.sources) {
+                        // Load sources into the sidebar if available
+                        if (data.sources && data.show_sources_button) {
                             $("#sourcesSidebar").html(data.sources);
                             var toggleButtonHtml = '<div class="toggle-button"><button onclick="toggleSidebar()" class="btn btn-primary btn-sm">🔍 Show/Hide Sources</button></div>';
                             $("#messageFormeight").append(toggleButtonHtml);
@@ -106,7 +148,16 @@
                         <form id="messageArea" class="input-group">
                             <input type="text" id="text" name="msg" placeholder="Type your message..." autocomplete="off" class="form-control type_msg" required/>
                             <div class="input-group-append">
-                                <button type="submit" id="send" class="input-group-text send_btn"><i class="fas fa-location-arrow"></i></button>
+                                <!-- Upload Button (Paperclip Icon) -->
+                                <label for="pdfUpload" class="input-group-text upload_btn" style="cursor: pointer;">
+                                    <i class="fas fa-paperclip"></i>
+                                </label>
+                                <!-- Hidden file input -->
+                                <input type="file" id="pdfUpload" name="file" accept="application/pdf" style="display: none;">
+                                <!-- Send Button -->
+                                <button type="submit" id="send" class="input-group-text send_btn">
+                                    <i class="fas fa-location-arrow"></i>
+                                </button>
                             </div>
                         </form>
                     </div>

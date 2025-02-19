@@ -4,7 +4,7 @@ import requests
 import traceback
 import numpy as np
 import logging
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from config import Config
 from utils import (
     text_formatter,
@@ -14,14 +14,11 @@ from utils import (
     cosine_similarity
 )
 
-
-
 # Initialize Flask app
 app = Flask(__name__)
+app.secret_key = 'thats_my_key'
 
-
-import logging
-
+# Logging configuration
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -32,6 +29,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Ensure the uploads directory exists
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+# Load or generate embeddings
 if not os.path.exists("pages_and_chunks.json"):
     pages_and_chunks = preprocess_and_chunk(Config.PDF_PATH)
     with open("pages_and_chunks.json", "w", encoding="utf-8") as f:
@@ -42,7 +44,6 @@ else:
 
 text_chunks = [chunk["sentence_chunk"] for chunk in pages_and_chunks]
 embeddings = load_or_generate_embeddings(text_chunks)
-
 
 def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> list[tuple[dict, float]]:
     """
@@ -93,25 +94,41 @@ def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> l
         logger.error("No embedding data found in API response.")
         raise RuntimeError("No embedding data found in API response.")
 
-    # Convert the embedding data into a tensor
+    # Convert the embedding data into a numpy array
     try:
         query_embedding = np.array(query_embeddings).squeeze()
     except Exception as e:
-        logger.error(f"Error converting embedding data to tensor: {e}")
-        raise RuntimeError(f"Error converting embedding data to tensor: {e}")
+        logger.error(f"Error converting embedding data to numpy array: {e}")
+        raise RuntimeError(f"Error converting embedding data to numpy array: {e}")
 
-    # Calculate the similarities
+    # Calculate the cosine similarities
     dot_scores = np.array([cosine_similarity(query_embedding, emb) for emb in embeddings])
-    indices = np.argsort(dot_scores)[-n_resources_to_return:][::-1]
-    scores = dot_scores[indices]
+
+    # Filter results based on the cosine similarity threshold
+    above_threshold_indices = np.where(dot_scores > Config.COSINE_SIMILARITY_THRESHOLD)[0]
+    above_threshold_scores = dot_scores[above_threshold_indices]
+
+    # If no results pass the threshold, return an empty list
+    if len(above_threshold_indices) == 0:
+        logger.warning(f"No results found above the cosine similarity threshold of {Config.COSINE_SIMILARITY_THRESHOLD}.")
+        return []
+
+    # Sort the filtered results by score (descending) and select the top-k
+    sorted_indices = above_threshold_indices[np.argsort(above_threshold_scores)[::-1]]
+    sorted_scores = above_threshold_scores[np.argsort(above_threshold_scores)[::-1]]
 
     # Return the top results with their scores
-    return [(pages_and_chunks[i], float(scores[idx])) for idx, i in enumerate(indices)]
+    return [(pages_and_chunks[i], float(sorted_scores[idx])) for idx, i in enumerate(sorted_indices[:n_resources_to_return])]
 
 def format_combined_summary_and_sources(results):
-    """Creates a combined summary of the top 5 results and displays the sources."""
+    """Creates a combined summary of the top results and displays the sources."""
+    if not results:
+        return {
+            "summary": "No relevant information found.",
+            "sources": ""
+        }
     
-    # Combine the texts of the top 5 results for the combined summary
+    # Combine the texts of the top results for the combined summary
     combined_text = " ".join([text_formatter(result['sentence_chunk']) for result, _ in results])
     
     # Generate a combined summary using the chat model
@@ -131,18 +148,72 @@ def format_combined_summary_and_sources(results):
     
     # Return separated contents: summary and sources
     return {
-        "summary": f"<strong>📜 Summary of Top 5 Results:</strong><br>{summarized_text}",
+        "summary": f"<strong>📜 Summary of Top Results:</strong><br>{summarized_text}",
         "sources": sources_html
     }
 
-def get_chat_response(text):
-    """Generates a response based on the relevant embeddings."""
+def get_chat_response(text, pdf_uploaded: bool = False):
+    """
+    Generates a response based on the relevant embeddings.
+
+    Args:
+        text (str): The user's query.
+        pdf_uploaded (bool): Whether a PDF has been uploaded. Defaults to False.
+
+    Returns:
+        dict: Contains the summary, sources, and a flag to show/hide the sources button.
+    """
+    if not pdf_uploaded:
+        # If no PDF is uploaded, chat directly with the LLM
+        summary = get_llm_response(text)
+        return {
+            "summary": f"<strong>📜 LLM Response:</strong><br>{summary}",
+            "sources": "",
+            "show_sources_button": False  
+        }
+
+    # Retrieve relevant resources if a PDF is uploaded
     results = retrieve_relevant_resources(text)
-    
-    # Retrieve combined contents (Summary + Sources)
+
+    if not results:
+        # If no results are found, let the LLM respond directly
+        summary = get_llm_response(text)
+        return {
+            "summary": f"<i> This query has no results from the PDF.</i><br><strong>📜LLM:</strong> {summary}",
+            "sources": "",
+            "show_sources_button": False  
+        }
+ 
+
+    # Format the summary and sources
     formatted_content = format_combined_summary_and_sources(results)
+    return {
+        "summary": formatted_content["summary"],
+        "sources": formatted_content["sources"],
+        "show_sources_button": True  # Show the sources button
+    }
+
+def get_llm_response(text):
+    """Uses the chat model to generate a direct response to the user's query."""
+    payload = {
+        "model": Config.CHAT_MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": text}
+        ],
+        "temperature": 0.6,
+        "max_tokens": 500
+    }
     
-    return formatted_content 
+    response = requests.post(Config.LM_STUDIO_API_URL, json=payload)
+    
+    if response.status_code == 200:
+        answer = response.json()["choices"][0]["message"]["content"]
+        answer = ensure_complete_sentences(answer)
+        return answer
+    else:
+        logger.error(f"Error in LLM request: {response.status_code} - {response.text}")
+        return "Answer not available."
 
 def summarize_with_chat_model(text):
     """Uses the chat model to generate a summary of the text in its own words."""
@@ -164,7 +235,7 @@ def summarize_with_chat_model(text):
         summary = ensure_complete_sentences(summary)
         return summary
     else:
-        print(f"Error in LLM request: {response.status_code} - {response.text}")
+        logger.error(f"Error in LLM request: {response.status_code} - {response.text}")
         return "Summary not available."
 
 def ensure_complete_sentences(text):
@@ -189,19 +260,66 @@ def chat():
     if not msg:
         return jsonify({"error": "No message provided"}), 400
     
+    # Initialize chat history in session if not exists
+    if "chat_history" not in session:
+        session["chat_history"] = []
+
+    # Add user message to history
+    session["chat_history"].append({"role": "user", "content": msg})
+    
     try:
-        # Retrieve response data (Summary & Sources)
-        response_data = get_chat_response(msg)
+        # Check if a PDF has been uploaded
+        pdf_uploaded = os.path.exists("pages_and_chunks.json")  # Example check
+
+        # Retrieve response with context
+        response_data = get_chat_response(msg, pdf_uploaded=pdf_uploaded)
+
+        # Add assistant response to history
+        session["chat_history"].append({"role": "assistant", "content": response_data["summary"]})
 
         return jsonify({
             "response": response_data["summary"],   # The main summary
-            "sources": response_data["sources"]     # The sources as separate content
+            "sources": response_data["sources"],    # The sources as separate content
+            "show_sources_button": response_data["show_sources_button"]  # Whether to show the sources button
         })
     except Exception as e:
-        print(f"[ERROR] Error in processing: {e}")
-        print(f"[DEBUG] Traceback: {traceback.format_exc()}")  # Show the full traceback
+        logger.error(f"Error in processing: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")  # Show the full traceback
 
         return jsonify({"error": "An error occurred.", "details": str(e)}), 500
+
+@app.route('/upload', methods=["POST"])
+def upload_pdf():
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+    
+    try:
+        # Ensure the uploads directory exists
+        if not os.path.exists("uploads"):
+            os.makedirs("uploads")
+
+        # Save the uploaded file
+        file_path = os.path.join("uploads", file.filename)
+        file.save(file_path)
+
+        # Preprocess the PDF and generate embeddings
+        pages_and_chunks = preprocess_and_chunk(file_path)
+        with open("pages_and_chunks.json", "w", encoding="utf-8") as f:
+            json.dump(pages_and_chunks, f, indent=4)
+        
+        text_chunks = [chunk["sentence_chunk"] for chunk in pages_and_chunks]
+        embeddings = load_or_generate_embeddings(text_chunks)
+
+        logger.info(f"PDF uploaded and processed: {file.filename}")
+        return jsonify({"message": "PDF uploaded and processed successfully"}), 200
+    except Exception as e:
+        logger.error(f"Error uploading PDF: {str(e)}")
+        return jsonify({"error": "An error occurred while processing the PDF.", "details": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

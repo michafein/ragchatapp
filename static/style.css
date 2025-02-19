@@ -94,6 +94,10 @@ body, html {
     color: rgb(219, 219, 219) !important;
     cursor: pointer;
 }
+.send_btn:hover {
+    background-color: rgba(32, 55, 82, 0.5) !important; 
+    color: rgb(50, 50, 50) !important; 
+}
 
 /* Search button styling */
 .search_btn {
@@ -365,4 +369,22 @@ body, html {
     height: 30px;
     animation: spin 1s linear infinite;
    display:none;/* Initially hidden */ 
+}
+
+/* Style for the upload button */
+.upload_btn {
+    background-color: #254d7975;
+    color: rgb(219, 219, 219);
+    border: none;
+    cursor: pointer;
+}
+
+.upload_btn:hover {
+    background-color: rgba(32, 55, 82, 0.5) !important; 
+    color: rgb(50, 50, 50) !important; 
+}
+
+/* Style for the file input */
+#pdfUpload {
+    display: none;
 }

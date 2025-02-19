@@ -17,3 +17,6 @@ __pycache__/
 embeddings.npy
 pages_and_chunks.json
 human-nutrition-text.pdf
+
+#Ignore folder
+uploads/
