@@ -20,3 +20,5 @@ human-nutrition-text.pdf
 
 #Ignore folder
 uploads/
+embeddings/
+pages_and_chunks/
