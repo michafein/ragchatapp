@@ -236,7 +236,7 @@ def get_llm_response(text):
         messages = [{"role": "system", "content": f"Conversation summary: {summary}"}]
     else:
         # Otherwise, use the full chat history
-        messages = [{"role": "system", "content": "You are a helpful assistant."}]
+        messages = [{"role": "system", "content": "You are a helpful assistant and your answers are quite short in one sentence to this query:"}]
         messages.extend(chat_history)
     
     # Append the current user query
@@ -246,7 +246,7 @@ def get_llm_response(text):
         "model": Config.CHAT_MODEL_NAME,
         "messages": messages,
         "temperature": 0.6,
-        "max_tokens": 500
+        "max_tokens": 200
     }
     
     response = requests.post(Config.LM_STUDIO_API_URL, json=payload)
