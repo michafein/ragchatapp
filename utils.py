@@ -103,19 +103,24 @@ def cosine_similarity(vec1, vec2):
     """Calculates the cosine similarity between two vectors."""
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
-def load_or_generate_embeddings(text_chunks, pdf_hash: str):
+def load_or_generate_embeddings(text_chunks, pdf_hash: str, progress_callback=None):
+    """
+    Load existing embeddings or generate new ones for the provided text chunks.
+    If a progress_callback is provided, it will be called with (pdf_hash, progress_percentage).
+    """
     embeddings_path = os.path.join("embeddings", f"{pdf_hash}.npy")
     
     if os.path.exists(embeddings_path):
         return np.load(embeddings_path)
     
     embeddings = []
-    for i in tqdm(range(0, len(text_chunks), Config.EMBEDDING_BATCH_SIZE)):
+    total_batches = (len(text_chunks) + Config.EMBEDDING_BATCH_SIZE - 1) // Config.EMBEDDING_BATCH_SIZE
+    
+    # Process text chunks in batches
+    for batch_index, i in enumerate(range(0, len(text_chunks), Config.EMBEDDING_BATCH_SIZE)):
         batch = text_chunks[i:i + Config.EMBEDDING_BATCH_SIZE]
-        # Log the batch for debugging
-        logger.debug(f"Processing batch starting at index {i}: {batch}")
-
-        # Validate and clean each chunk in the batch
+        logger.debug(f"Processing batch {batch_index + 1}/{total_batches}: {batch}")
+        
         cleaned_batch = []
         for chunk in batch:
             if not isinstance(chunk, str) or not chunk.strip():
@@ -147,12 +152,15 @@ def load_or_generate_embeddings(text_chunks, pdf_hash: str):
                     embeddings.append(item["embedding"])
                 else:
                     logger.error(f"Unexpected embedding format: {item}")
-                    continue
         except requests.exceptions.RequestException as e:
-            # Log the error and skip this batch
-            logger.error(f"Failed to process batch starting at index {i}: {str(e)}")
+            logger.error(f"Failed to process batch {batch_index + 1}: {str(e)}")
             logger.error(f"Problematic batch: {batch}")
-            continue  # Skip this batch and continue with the next one
+            continue
+        
+        # Update progress using the callback, if provided
+        if progress_callback:
+            progress = (batch_index + 1) / total_batches * 100
+            progress_callback(pdf_hash, progress)
     
     if not embeddings:
         raise RuntimeError("No embeddings generated for the provided text chunks")

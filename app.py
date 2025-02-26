@@ -17,7 +17,7 @@ from utils import (
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = 'thats_my_key'
+app.secret_key = 'RAG_my_key'
 
 # Logging configuration
 logging.basicConfig(
@@ -34,6 +34,13 @@ logger = logging.getLogger(__name__)
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("embeddings", exist_ok=True)
 os.makedirs("pages_and_chunks", exist_ok=True)
+
+# Global dictionary to track embedding generation progress for each PDF
+progress_tracker = {}
+
+def update_progress(pdf_hash, progress):
+    """Update progress for a given PDF in the global progress tracker"""
+    progress_tracker[pdf_hash] = progress
 
 # Load or generate all embeddings
 def get_all_embeddings():
@@ -52,7 +59,6 @@ def get_all_embeddings():
                     if os.path.exists(metadata_path):
                         with open(metadata_path, "r", encoding="utf-8") as f:
                             metadata = json.load(f)
-                            # Add PDF name to each chunk
                             for chunk in metadata["chunks"]:
                                 chunk["pdf_name"] = metadata["pdf_name"]
                             all_metadata.extend(metadata["chunks"])
@@ -97,10 +103,7 @@ def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> l
         logger.warning("No embeddings available for search")
         return []
 
-    # Define the payload for the embedding API request
     payload = {"input": query, "model": Config.EMBEDDING_MODEL_NAME}
-
-    # Use the centralized API request function
     try:
         api_response = make_api_request(
             url=Config.LM_STUDIO_EMBEDDING_API_URL,
@@ -111,19 +114,14 @@ def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> l
         logger.error(f"Failed to retrieve embeddings: {str(e)}")
         raise
 
-    # Debugging: Log the API response
     logger.debug(f"API Response (Query): {api_response}")
-
-    # Extract the embedding data
     embedding_data = api_response.get("data", [])
     logger.debug(f"Embedding Data (Query): {embedding_data}")
 
-    # Validate the embedding data
     if not embedding_data or not isinstance(embedding_data, list):
         logger.error("Unexpected format of embedding data.")
         raise RuntimeError("Unexpected format of embedding data.")
 
-    # Extract the embedding vectors
     query_embeddings = [
         item["embedding"] for item in embedding_data
         if isinstance(item, dict) and "embedding" in item
@@ -132,31 +130,25 @@ def retrieve_relevant_resources(query: str, n_resources_to_return: int = 5) -> l
         logger.error("No embedding data found in API response.")
         raise RuntimeError("No embedding data found in API response.")
 
-    # Convert the embedding data into a numpy array
     try:
         query_embedding = np.array(query_embeddings).squeeze()
     except Exception as e:
         logger.error(f"Error converting embedding data to numpy array: {e}")
         raise RuntimeError(f"Error converting embedding data to numpy array: {e}")
 
-    # Calculate the cosine similarities
     dot_scores = np.array([cosine_similarity(query_embedding, emb) for emb in embeddings])
-
-    # Filter results based on the cosine similarity threshold
     above_threshold_indices = np.where(dot_scores > Config.COSINE_SIMILARITY_THRESHOLD)[0]
     above_threshold_scores = dot_scores[above_threshold_indices]
 
-    # If no results pass the threshold, return an empty list
     if len(above_threshold_indices) == 0:
         logger.warning(f"No results found above the cosine similarity threshold of {Config.COSINE_SIMILARITY_THRESHOLD}.")
         return []
 
-    # Sort the filtered results by score (descending) and select the top-k
     sorted_indices = above_threshold_indices[np.argsort(above_threshold_scores)[::-1]]
     sorted_scores = above_threshold_scores[np.argsort(above_threshold_scores)[::-1]]
 
-    # Return the top results with their scores
     return [(pages_and_chunks[i], float(sorted_scores[idx])) for idx, i in enumerate(sorted_indices[:n_resources_to_return])]
+
 
 def format_combined_summary_and_sources(results):
     """Creates a combined summary with PDF source information"""
@@ -196,7 +188,6 @@ def get_chat_response(text, pdf_uploaded: bool = False):
         dict: Contains the summary, sources, and a flag to show/hide the sources button.
     """
     if not pdf_uploaded:
-        # If no PDF is uploaded, chat directly with the LLM
         summary = get_llm_response(text)
         return {
             "summary": f"<strong>📜 LLM Response:</strong><br>{summary}",
@@ -204,11 +195,9 @@ def get_chat_response(text, pdf_uploaded: bool = False):
             "show_sources_button": False  
         }
 
-    # Retrieve relevant resources if a PDF is uploaded
     results = retrieve_relevant_resources(text)
 
     if not results:
-        # If no results are found, let the LLM respond directly
         summary = get_llm_response(text)
         return {
             "summary": f"<i> This query has no results from the PDF.</i><br><strong>📜LLM:</strong> {summary}",
@@ -216,13 +205,11 @@ def get_chat_response(text, pdf_uploaded: bool = False):
             "show_sources_button": False  
         }
  
-
-    # Format the summary and sources
     formatted_content = format_combined_summary_and_sources(results)
     return {
         "summary": formatted_content["summary"],
         "sources": formatted_content["sources"],
-        "show_sources_button": True  # Show the sources button
+        "show_sources_button": True
     }
 
 def get_llm_response(text):
@@ -236,7 +223,7 @@ def get_llm_response(text):
         messages = [{"role": "system", "content": f"Conversation summary: {summary}"}]
     else:
         # Otherwise, use the full chat history
-        messages = [{"role": "system", "content": "You are a helpful assistant and your answers are quite short in one sentence to this query:"}]
+        messages = [{"role": "system", "content": "You are a helpful assistant and your answers in one sentence:"}]
         messages.extend(chat_history)
     
     # Append the current user query
@@ -400,13 +387,14 @@ def upload_pdf():
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=4)
         
-        # Generate embeddings
+        # Generate embeddings with progress callback to update the progress_tracker
         text_chunks = [chunk["sentence_chunk"] for chunk in pages_and_chunks]
-        load_or_generate_embeddings(text_chunks, pdf_hash)
+        load_or_generate_embeddings(text_chunks, pdf_hash, progress_callback=update_progress)
         
         return jsonify({
             "message": "PDF processed successfully",
-            "pdf_name": file.filename
+            "pdf_name": file.filename,
+            "pdf_hash": pdf_hash
         }), 200
     
     except Exception as e:
@@ -416,6 +404,14 @@ def upload_pdf():
             "details": str(e)
         }), 500
 
+@app.route('/upload_progress', methods=["GET"])
+def upload_progress():
+    """Endpoint to retrieve the embedding generation progress for a given PDF"""
+    pdf_hash = request.args.get("pdf_hash")
+    if not pdf_hash:
+        return jsonify({"error": "Missing pdf_hash parameter"}), 400
+    progress = progress_tracker.get(pdf_hash, 0)
+    return jsonify({"pdf_hash": pdf_hash, "progress": progress})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)

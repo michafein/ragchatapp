@@ -17,7 +17,9 @@ class Config:
     
     # Other settings
     DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+    
+    SECRET_KEY = os.getenv("SECRET_KEY", "RAG_my_key")  
 
-    COSINE_SIMILARITY_THRESHOLD = 0.6  # Set the threshold for cosine similarity. Results above this threshold will be considered relevant for summarization.
+    COSINE_SIMILARITY_THRESHOLD = 0.6
     EMBEDDING_BATCH_SIZE = 32
 
