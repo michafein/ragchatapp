@@ -388,3 +388,27 @@ body, html {
 #pdfUpload {
     display: none;
 }
+
+/* Enlarged progress bar for better readability */
+#progressBarContainer {
+    margin-bottom: 15px;
+    padding: 5px;
+}
+
+/* Adjust progress bar height and appearance */
+#progressBarContainer .progress {
+    height: 14px; 
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 7px; 
+}
+
+/* Progress bar styling */
+#progressBarContainer .progress-bar {
+    background-color: #3daee2;
+    height: 100%;
+    font-size: 14px; 
+    font-weight: bold;
+    line-height: 14px; 
+    text-align: center; 
+    color: white; 
+}

@@ -12,21 +12,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Custom progress bar styling to match the theme */
-        #progressBarContainer {
-            margin-bottom: 10px;
-        }
-        #progressBarContainer .progress {
-            height: 6px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-        #progressBarContainer .progress-bar {
-            background-color: #3daee2;
-            height: 6px;
-            font-size: 12px;
-            line-height: 6px;
-        }
+
     </style>
     <script>
         function toggleSidebar() {
@@ -40,63 +26,64 @@
                 msgCardBody.scrollTop = msgCardBody.scrollHeight;
             }
 
-            // Function to handle PDF upload and start progress polling
-            function uploadPDF() {
+            // Function to upload PDF using fetch with streaming for progress updates
+            async function uploadPDF() {
                 var fileInput = document.getElementById("pdfUpload");
                 var file = fileInput.files[0];
                 if (!file) {
                     alert("Please select a PDF file to upload.");
                     return;
                 }
-
                 var formData = new FormData();
                 formData.append("file", file);
 
-                // Show progress bar container with initial 0% progress in the footer
+                // Show progress bar container with initial 0% progress
                 $("#progressBarContainer").show();
                 $("#progressBar").css('width', '0%').text('0%');
 
-                // Send AJAX request to upload the PDF
-                $.ajax({
-                    url: "/upload",
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        // Start polling the progress endpoint using the returned pdf_hash
-                        var pdfHash = response.pdf_hash;
-                        var progressInterval = setInterval(function(){
-                            $.ajax({
-                                url: '/upload_progress',
-                                type: 'GET',
-                                data: { pdf_hash: pdfHash },
-                                success: function(progressData) {
-                                    var progress = progressData.progress;
-                                    $("#progressBar").css('width', progress + '%').text(Math.floor(progress) + '%');
-                                    // When progress reaches or exceeds 100%, stop polling
-                                    if (progress >= 100) {
-                                        clearInterval(progressInterval);
-                                        $("#progressBarContainer").fadeOut();
-                                        alert("PDF uploaded and embeddings generation completed!");
-                                    }
-                                },
-                                error: function() {
-                                    clearInterval(progressInterval);
+                try {
+                    let response = await fetch("/upload_stream", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let done = false;
+                    while (!done) {
+                        const { value, done: doneReading } = await reader.read();
+                        done = doneReading;
+                        const chunkValue = decoder.decode(value);
+                        let lines = chunkValue.split("\n");
+                        for (let line of lines) {
+                            if (line.startsWith("data: ")) {
+                                let data = line.substring(6).trim();
+                                console.log("Received:", data);
+                                if (data.startsWith("Progress: ")) {
+                                    // Expecting "Progress: XX%"
+                                    let percentStr = data.split("Progress: ")[1].replace("%", "").trim();
+                                    let percent = parseInt(percentStr);
+                                    $("#progressBar").css('width', percent + '%').text(percent + '%');
+                                } else if (data.includes("Process complete")) {
+                                    $("#progressBar").css('width', '100%').text('100%');
                                     $("#progressBarContainer").fadeOut();
-                                    alert("Error retrieving upload progress.");
+                                    alert("PDF uploaded and embeddings generation completed! You can now interact with the chatbot.");
+                                } else if (data.startsWith("Error:")) {
+                                    $("#progressBarContainer").fadeOut();
+                                    alert("Error during processing: " + data);
+                                } else {
+                                    // Optionally log other messages
+                                    console.log(data);
                                 }
-                            });
-                        }, 1000);
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        $("#progressBarContainer").hide();
-                        alert("Error uploading PDF: " + errorThrown);
+                            }
+                        }
                     }
-                });
+                } catch (err) {
+                    $("#progressBarContainer").fadeOut();
+                    alert("Error uploading PDF: " + err);
+                }
             }
 
-            // Trigger file input when the upload button is clicked
+            // Trigger file upload when the file input changes
             $("#pdfUpload").on("change", function() {
                 uploadPDF();
             });
