@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 COPY requirements.txt .
 
 # Install Python dependencies without caching to reduce image size
-RUN pip install --no-cache-dir --user -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir --user -r requirements.txt 
 
 # Copy the application code
 COPY . .
@@ -25,6 +25,12 @@ COPY . .
 FROM python:3.11-slim AS final
 
 WORKDIR /app
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=app_enhanced.py \
+    PATH=/root/.local/bin:$PATH
 
 # Install runtime dependencies for PyMuPDF (no need for extra packages like CUDA)
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -39,11 +45,23 @@ COPY --from=builder /root/.local /root/.local
 # Copy the application code from the builder stage
 COPY --from=builder /app /app
 
-# Ensure scripts in .local are usable (for pip installations that might land in .local)
-ENV PATH=/root/.local/bin:$PATH
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/uploads /app/embeddings /app/pages_and_chunks /app/logs && \
+    chmod -R 755 /app
+
+# Create a non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+
+# Switch to the non-root user
+USER appuser
 
 # Expose the port the app runs on
 EXPOSE 5000
 
-# Run the application
+# Healthcheck to verify app is running correctly
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5000/ || exit 1
+
+# Run the enhanced application
 CMD ["python", "app.py"]

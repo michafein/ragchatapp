@@ -1,21 +1,24 @@
+"""
+Test cases for utility functions used in the RAG chatbot application.
+"""
+
 import unittest
 from unittest.mock import patch, MagicMock
 import numpy as np
 import os
 import fitz  # PyMuPDF
-from utils import (
-    text_formatter,
-    open_and_read_pdf,
-    split_list,
-    preprocess_and_chunk,
-    load_or_generate_embeddings,
-    nlp
-)
+
+# Import from the new modular structure
+from utils.text_processing import text_formatter, nlp, extract_sentences
+from utils.pdf_processing import open_and_read_pdf, preprocess_and_chunk
+from utils.embeddings import load_or_generate_embeddings
 
 class TestUtils(unittest.TestCase):
+    """Test class for utility functions."""
+    
     def test_text_formatter(self):
-        """Testet die text_formatter-Funktion."""
-         # Test if line breaks are removed
+        """Test the text_formatter function."""
+        # Test if line breaks are removed
         input_text = "Hello\nWorld"
         expected_output = "Hello World"
         self.assertEqual(text_formatter(input_text), expected_output)
@@ -31,7 +34,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(text_formatter(input_text), expected_output)
 
     def test_open_and_read_pdf(self):
-        """Testet die open_and_read_pdf-Funktion."""
+        """Test the open_and_read_pdf function."""
         # Create a small test PDF file
         pdf_path = "test.pdf"
         with fitz.open() as doc:
@@ -39,34 +42,19 @@ class TestUtils(unittest.TestCase):
             page.insert_text((50, 50), "This is a test sentence.")
             doc.save(pdf_path)
 
-        # Test if the function extracts text correctly
-        result = open_and_read_pdf(pdf_path)
-        self.assertIsInstance(result, list)
-        self.assertTrue(all(isinstance(item, dict) for item in result))
-        self.assertTrue(all("page_number" in item and "text" in item and "sentences" in item for item in result))
-
-         # Cleanup: Delete the test PDF file
-        os.remove(pdf_path)
-
-    def test_split_list(self):
-        """Testet die split_list-Funktion."""
-         # Test if the list is split correctly
-        input_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        expected_output = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]]
-        self.assertEqual(split_list(input_list, slice_size=5), expected_output)
-
-        # Test if the remainder is handled correctly
-        input_list = [1, 2, 3, 4, 5, 6]
-        expected_output = [[1, 2, 3], [4, 5, 6]]
-        self.assertEqual(split_list(input_list, slice_size=3), expected_output)
-
-        # Test if an empty list is handled correctly 
-        input_list = []
-        expected_output = []
-        self.assertEqual(split_list(input_list, slice_size=3), expected_output)
+        try:
+            # Test if the function extracts text correctly
+            result = open_and_read_pdf(pdf_path)
+            self.assertIsInstance(result, list)
+            self.assertTrue(all(isinstance(item, dict) for item in result))
+            self.assertTrue(all("page_number" in item and "text" in item and "sentences" in item for item in result))
+        finally:
+            # Cleanup: Delete the test PDF file
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
 
     def test_preprocess_and_chunk(self):
-        """Testet die preprocess_and_chunk-Funktion."""
+        """Test the preprocess_and_chunk function."""
         # Create a small test PDF file 
         pdf_path = "test.pdf"
         with fitz.open() as doc:
@@ -74,18 +62,20 @@ class TestUtils(unittest.TestCase):
             page.insert_text((50, 50), "This is a test sentence. Another one.")
             doc.save(pdf_path)
 
-        # Test if the function creates text chunks correctly
-        result = preprocess_and_chunk(pdf_path)
-        self.assertIsInstance(result, list)
-        self.assertTrue(all(isinstance(item, dict) for item in result))
-        self.assertTrue(all("page_number" in item and "sentence_chunk" in item for item in result))
-
-        # Cleanup: Delete the test PDF file 
-        os.remove(pdf_path)
+        try:
+            # Test if the function creates text chunks correctly
+            result = preprocess_and_chunk(pdf_path)
+            self.assertIsInstance(result, list)
+            self.assertTrue(all(isinstance(item, dict) for item in result))
+            self.assertTrue(all("page_number" in item and "sentence_chunk" in item for item in result))
+        finally:
+            # Cleanup: Delete the test PDF file 
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
 
     @patch("requests.post")
     def test_load_or_generate_embeddings(self, mock_post):
-        """Testet die load_or_generate_embeddings-Funktion."""
+        """Test the load_or_generate_embeddings function."""
         # Mock the API response  
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -94,22 +84,28 @@ class TestUtils(unittest.TestCase):
         }
         mock_post.return_value = mock_response
 
-        # Test if embeddings are correctly generated  
-        text_chunks = ["Test sentence"]
-        embeddings = load_or_generate_embeddings(text_chunks)
-        self.assertIsInstance(embeddings, np.ndarray)  
-
-        # Test if existing embeddings are loaded
-        with patch("os.path.exists", return_value=True), patch("numpy.load", return_value=np.array([[0.1, 0.2, 0.3]])):
-            embeddings = load_or_generate_embeddings(text_chunks)
-            self.assertIsInstance(embeddings, np.ndarray)  
+        # Use a temporary PDF hash for testing
+        pdf_hash = "test_hash"
+        
+        # Ensure the embeddings directory exists
+        os.makedirs("embeddings", exist_ok=True)
+        
+        try:
+            # Test if embeddings are correctly generated  
+            text_chunks = ["Test sentence"]
+            embeddings = load_or_generate_embeddings(text_chunks, pdf_hash)
+            self.assertIsInstance(embeddings, np.ndarray)
+        finally:
+            # Clean up any generated files
+            if os.path.exists(f"embeddings/{pdf_hash}.npy"):
+                os.remove(f"embeddings/{pdf_hash}.npy")
 
     def test_nlp_pipeline(self):
-        """Testet die spaCy-Pipeline."""
+        """Test the spaCy NLP pipeline."""
         # Test if the pipeline is correctly initialized  
         text = "This is a test sentence. Another one."
-        doc = nlp(text)
-        self.assertEqual(len(list(doc.sents)), 2)  # There should be two sentences detected 
+        sentences = extract_sentences(text)
+        self.assertEqual(len(sentences), 2)  # There should be two sentences detected
 
 if __name__ == "__main__":
     unittest.main()

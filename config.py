@@ -1,7 +1,5 @@
 import os
 
-#from dotenv import load_dotenv
-#load_dotenv()
 
 class Config:
     # API URLs
@@ -12,14 +10,17 @@ class Config:
     EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "text-embedding-all-minilm-l6-v2-embedding")
     CHAT_MODEL_NAME = os.getenv("CHAT_MODEL_NAME", "deepseek-r1-distill-qwen-7b")
     
-    # PDF path
+    # PDF path for default document (if needed)
     PDF_PATH = os.getenv("PDF_PATH", "human-nutrition-text.pdf")
     
     # Other settings
     DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-    
     SECRET_KEY = os.getenv("SECRET_KEY", "RAG_my_key")  
-
-    COSINE_SIMILARITY_THRESHOLD = 0.6
-    EMBEDDING_BATCH_SIZE = 32
-
+    
+    # RAG settings
+    COSINE_SIMILARITY_THRESHOLD = float(os.getenv("COSINE_SIMILARITY_THRESHOLD", "0.6"))
+    EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "32"))
+    
+    # Server settings
+    HOST = os.getenv("HOST", "0.0.0.0")
+    PORT = int(os.getenv("PORT", "5000"))

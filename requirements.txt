@@ -1,8 +1,22 @@
-flask
-numpy>2
-requests>2.26.0
-tqdm>4.62.0
-PyMuPDF
-spacy
-redis
-celery
+# Web framework and extensions
+Flask==2.3.3
+python-dotenv==1.0.0
+Werkzeug==2.3.7
+
+# PDF processing
+PyMuPDF==1.23.4
+
+# NLP and text processing
+spacy==3.7.2
+tqdm==4.66.1
+
+# Numerical processing
+numpy==1.25.2
+
+# HTTP requests
+requests==2.31.0
+
+# Testing
+pytest==7.4.2
+pytest-mock==3.11.1
+pytest-cov==4.1.0

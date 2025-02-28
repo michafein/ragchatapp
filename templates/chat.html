@@ -12,7 +12,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
     </style>
     <script>
         function toggleSidebar() {
@@ -40,47 +39,116 @@
                 // Show progress bar container with initial 0% progress
                 $("#progressBarContainer").show();
                 $("#progressBar").css('width', '0%').text('0%');
+                // Ensure the progress bar has the correct color (in case it was changed due to previous errors)
+                $("#progressBar").removeClass("bg-danger progress-bar-full").addClass("bg-info");
 
                 try {
                     let response = await fetch("/upload_stream", {
                         method: "POST",
                         body: formData
                     });
+                    
+                    if (!response.ok) {
+                        // Handle HTTP errors (like 400, 500)
+                        $("#progressBarContainer").fadeOut(1000);
+                        alert(`Server error: ${response.status} - ${response.statusText}`);
+                        return;
+                    }
+                    
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let done = false;
+                    let statusReceived = false;
+                    let status = null;
+                    let errorMessage = null;
+                    
                     while (!done) {
-                        const { value, done: doneReading } = await reader.read();
-                        done = doneReading;
-                        const chunkValue = decoder.decode(value);
-                        let lines = chunkValue.split("\n");
-                        for (let line of lines) {
-                            if (line.startsWith("data: ")) {
-                                let data = line.substring(6).trim();
-                                console.log("Received:", data);
-                                if (data.startsWith("Progress: ")) {
-                                    // Expecting "Progress: XX%"
-                                    let percentStr = data.split("Progress: ")[1].replace("%", "").trim();
-                                    let percent = parseInt(percentStr);
-                                    $("#progressBar").css('width', percent + '%').text(percent + '%');
-                                } else if (data.includes("Process complete")) {
-                                    $("#progressBar").css('width', '100%').text('100%');
-                                    $("#progressBarContainer").fadeOut();
-                                    alert("PDF uploaded and embeddings generation completed! You can now interact with the chatbot.");
-                                } else if (data.startsWith("Error:")) {
-                                    $("#progressBarContainer").fadeOut();
-                                    alert("Error during processing: " + data);
-                                } else {
-                                    // Optionally log other messages
-                                    console.log(data);
+                        try {
+                            const { value, done: doneReading } = await reader.read();
+                            done = doneReading;
+                            
+                            if (done && !statusReceived) {
+                                // If we're done but never got a status, assume error
+                                $("#progressBarContainer").fadeOut(1000);
+                                alert("The connection ended unexpectedly. Please check the server logs for details.");
+                                return;
+                            }
+                            
+                            if (!value) continue; // Skip empty chunks
+                            
+                            const chunkValue = decoder.decode(value);
+                            let lines = chunkValue.split("\n");
+                            
+                            for (let line of lines) {
+                                if (line.startsWith("data: ")) {
+                                    let data = line.substring(6).trim();
+                                    console.log("Received:", data);
+                                    
+                                    if (data.startsWith("Progress: ")) {
+                                        // Handle progress updates
+                                        let percentStr = data.split("Progress: ")[1].replace("%", "").trim();
+                                        let percent = parseInt(percentStr);
+                                        
+                                        // Ensure full width at 100%
+                                        if (percent >= 100) {
+                                            $("#progressBar")
+                                                .css('width', '100%')
+                                                .addClass('progress-bar-full')
+                                                .text('100%');
+                                        } else {
+                                            $("#progressBar")
+                                                .css('width', percent + '%')
+                                                .text(percent + '%');
+                                        }
+                                    } else if (data.startsWith("Error: ")) {
+                                        // Save error message
+                                        errorMessage = data.substring(7).trim();
+                                        $("#progressBar").removeClass("bg-info").addClass("bg-danger");
+                                    } else if (data.startsWith("Status: ")) {
+                                        // Process the final status
+                                        statusReceived = true;
+                                        status = data.substring(8).trim();
+                                    } else if (data.startsWith("PDF already processed")) {
+                                        // Handle duplicate PDF case
+                                        $("#progressBarContainer").fadeOut(1000);
+                                        alert("This PDF has already been processed. You can use it with the chatbot now.");
+                                        return;
+                                    }
                                 }
                             }
+                        } catch (readError) {
+                            console.error("Error reading from stream:", readError);
+                            done = true;
                         }
                     }
+                    
+                    // Handle the final status
+                    if (status === "success") {
+                        // Make sure we show 100% before fading out
+                        setTimeout(() => {
+                            $("#progressBarContainer").fadeOut(1000);
+                            alert("PDF successfully processed! You can now interact with the chatbot.");
+                        }, 500);
+                    } else if (status === "error") {
+                        $("#progressBarContainer").fadeOut(1000);
+                        alert(`Error processing PDF: ${errorMessage || "Unknown error"}`);
+                    } else if (status === "duplicate") {
+                        $("#progressBarContainer").fadeOut(1000);
+                        alert("This PDF has already been processed. You can use it with the chatbot now.");
+                    }
                 } catch (err) {
-                    $("#progressBarContainer").fadeOut();
-                    alert("Error uploading PDF: " + err);
+                    // Client-side errors (network issues, etc.)
+                    console.error("Upload error:", err);
+                    $("#progressBar").removeClass("bg-info").addClass("bg-danger");
+                    
+                    setTimeout(() => {
+                        $("#progressBarContainer").fadeOut(1000);
+                        alert(`Error uploading PDF: ${err.message || "Unknown error"}`);
+                    }, 1000);
                 }
+                
+                // Reset the file input so the user can upload the same file again if needed
+                fileInput.value = "";
             }
 
             // Trigger file upload when the file input changes

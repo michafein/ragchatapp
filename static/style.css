@@ -400,6 +400,8 @@ body, html {
     height: 14px; 
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 7px; 
+    padding: 0 !important;
+    overflow: hidden;
 }
 
 /* Progress bar styling */
@@ -411,4 +413,25 @@ body, html {
     line-height: 14px; 
     text-align: center; 
     color: white; 
+    border-radius: 0.25rem;
+    transition: width 0.3s ease;
+}
+
+/* Animation for transition to 100% */
+@keyframes fullWidth {
+    from { width: 98%; }
+    to { width: 100%; }
+}
+
+/* Guarantees full progress bar */
+.progress-bar-full {
+    width: 100% !important;
+    min-width: 100% !important;
+    animation: fullWidth 0.3s ease-out;
+}
+
+/* When progress bar is full, ensure corners display correctly */
+#progressBar.w-100 {
+    border-top-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.25rem;
 }
