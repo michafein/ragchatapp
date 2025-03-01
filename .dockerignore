@@ -1,30 +1,89 @@
-# Ignoriere virtuelle Umgebungen
-.venv/
-venv/
-env/
-.env
+# Git
+.git/
+.github/
+.gitignore
+.gitattributes
 
-# Ignoriere Python-Cache-Dateien
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Ignoriere temporäre Dateien und Logs
-tmp/
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+.spyderproject
+.spyproject
+.ropeproject
+.project
+.pydevproject
+.settings/
+
+# Logs and temporary files
 logs/
 *.log
+tmp/
+temp/
 
-# Ignoriere IDE-spezifische Dateien
-.vscode/
-.idea/
+# Documentation
+README.md
+LICENSE
+CHANGELOG.md
+docs/
+mkdocs.yml
+*.md
 
-# Ignoriere Git-Verzeichnis
-.git/
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
 
-# Ignoriere andere unnötige Dateien
-*.swp
-*.swo
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
 
-# Ignoriere den tests-Ordner
-tests/
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Don't ignore these directories that need to be created in container
+!logs/.gitkeep
+!uploads/.gitkeep
+!embeddings/.gitkeep
+!pages_and_chunks/.gitkeep

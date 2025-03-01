@@ -18,7 +18,7 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "RAG_my_key")  
     
     # RAG settings
-    COSINE_SIMILARITY_THRESHOLD = float(os.getenv("COSINE_SIMILARITY_THRESHOLD", "0.6"))
+    COSINE_SIMILARITY_THRESHOLD = float(os.getenv("COSINE_SIMILARITY_THRESHOLD", "0.5"))
     EMBEDDING_BATCH_SIZE = int(os.getenv("EMBEDDING_BATCH_SIZE", "32"))
     
     # Server settings

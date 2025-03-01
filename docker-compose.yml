@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  ragchatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: michafein/ragchatapp:latest
+    container_name: ragchatbot
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./embeddings:/app/embeddings
+      - ./pages_and_chunks:/app/pages_and_chunks
+      - ./logs:/app/logs
+    environment:
+      - FLASK_APP=app.py
+      - DEBUG=False
+      - SECRET_KEY=RAG_my_key
+      
+      - LM_STUDIO_API_URL=http://host.docker.internal:1234/v1/chat/completions
+      - LM_STUDIO_EMBEDDING_API_URL=http://host.docker.internal:1234/v1/embeddings
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
