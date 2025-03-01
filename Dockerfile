@@ -3,7 +3,7 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install system dependencies (including mupdf and freetype for PyMuPDF)
+# Install system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
     gcc \
@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Copy requirements file first to leverage Docker cache
 COPY requirements.txt .
 
-# Install Python dependencies without caching to reduce image size
-RUN pip install --no-cache-dir --user -r requirements.txt 
+# Install Python dependencies globally instead of with --user
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY . .
@@ -29,10 +29,9 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    FLASK_APP=app_enhanced.py \
-    PATH=/root/.local/bin:$PATH
+    FLASK_APP=app.py
 
-# Install runtime dependencies for PyMuPDF (no need for extra packages like CUDA)
+# Install runtime dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
     libmupdf-dev \
     libfreetype6-dev \
@@ -40,12 +39,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from the builder stage
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy the application code from the builder stage
+# Copy the application code
 COPY --from=builder /app /app
 
-# Create necessary directories with proper permissions
+# Create necessary directories
 RUN mkdir -p /app/uploads /app/embeddings /app/pages_and_chunks /app/logs && \
     chmod -R 755 /app
 
@@ -59,9 +59,9 @@ USER appuser
 # Expose the port the app runs on
 EXPOSE 5000
 
-# Healthcheck to verify app is running correctly
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:5000/ || exit 1
 
-# Run the enhanced application
+# Run the application
 CMD ["python", "app.py"]
