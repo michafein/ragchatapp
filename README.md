@@ -286,7 +286,9 @@ Most API endpoints return JSON responses with the following structure:
   "show_sources_button": true,
   "status": "success"
 }
+```
 Error responses follow this format:
+```json
 {
   "error": "Error message",
   "details": "Additional error details (when available)",
@@ -399,17 +401,19 @@ For more detailed test output:
 4. Run tests to ensure functionality
 5. Submit a pull request
 
-
+---
 ## Models
 
 The RAG Chatbot uses the following models:
 
 - **Chat Model**: [`deepseek-r1-distill-qwen-7b`](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B) - A distilled language model from Deepseek AI
 - **Embedding Model**: [`text-embedding-all-minilm-l6-v2-embedding`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) - A sentence transformer model for generating text embeddings
-
+---
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
+
+---
 
 ## Links
 
