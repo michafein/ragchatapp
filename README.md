@@ -32,19 +32,26 @@ The user interface is implemented in HTML/CSS, with assets in the `templates/` a
 
 ## Features
 
+### Core Functionality
 - **Retrieval-Augmented Generation (RAG)**: Enhances LLM responses with relevant context retrieved from documents
 - **PDF Document Processing**: Upload, parse, and index PDF documents for knowledge extraction
 - **Vector Embeddings**: Semantic search using vector embeddings and cosine similarity to find relevant document sections
+
+### User Experience
 - **Responsive UI**: Clean and intuitive chat interface with real-time feedback
-- **Security-Focused**: Input validation, sanitization, and secure headers
-- **Modular Architecture**: Well-organized codebase with separation of concerns
-- **Enhanced Error Handling**: Robust error management with comprehensive logging
-- **Containerized Deployment**: Multi-stage Docker build for optimized container size
-- **Flask REST API**: Backend for processing user requests.
-- **HTML/CSS Frontend**: Clean and responsive interface.
-- **LM-Studio Integration**: REST API for embeddings and model inference.
-- **Docker Support**: Containerized deployment.
-- **Testing**: Unit tests in the `tests/` directory.
+- **Source Attribution**: Transparent display of information sources with page references
+- **Progress Tracking**: Real-time progress indicators for document processing
+
+### Technical Architecture
+- **Modular Design**: Well-organized codebase with clear separation of concerns
+- **RESTful API**: Comprehensive endpoints for integration with other applications
+- **LM-Studio Integration**: Seamless connection with local LLMs via REST API
+
+### Development & Deployment
+- **Security-Focused**: Input validation, sanitization, and secure headers protection
+- **Comprehensive Testing**: Extensive test suite covering core functionalities
+- **Docker Support**: Multi-stage container builds for optimized deployment
+- **Detailed Logging**: Robust error handling and comprehensive logging system
 
 ---
 ## How RAG Works
@@ -259,11 +266,33 @@ The application provides the following REST API endpoints:
 | Endpoint | Method | Description | Request Parameters | Response |
 |----------|--------|-------------|-------------------|----------|
 | `/` | GET | Main chat interface | None | HTML page |
-| `/get` | POST | Process user messages | `msg`: User message (string) | JSON: `{"response": "...", "sources": "...", "show_sources_button": true/false}` |
-| `/upload` | POST | Synchronous PDF upload | `file`: PDF file (multipart/form-data) | JSON: `{"message": "...", "pdf_hash": "...", "pdf_name": "..."}` |
-| `/upload_stream` | POST | Streaming PDF upload with progress | `file`: PDF file (multipart/form-data) | Server-Sent Events with progress updates |
-| `/clear_history` | POST | Clear chat history | None | JSON: `{"message": "Chat history cleared"}` |
+| `/get` | POST | Process user messages and return responses with context-aware answers | `msg`: User message (string) | JSON: `{"response": "...", "sources": "...", "show_sources_button": true/false}` |
+| `/upload` | POST | Synchronous PDF document upload and processing | `file`: PDF file (multipart/form-data) | JSON: `{"message": "...", "pdf_hash": "...", "pdf_name": "..."}` |
+| `/upload_stream` | POST | Streaming PDF upload with real-time progress updates | `file`: PDF file (multipart/form-data) | Server-Sent Events with progress updates |
+| `/clear_history` | POST | Clear current chat session history | None | JSON: `{"message": "Chat history cleared"}` |
 
+### Authentication
+
+Currently, the API doesn't require authentication as it's designed for local deployment. For production deployments, consider implementing appropriate authentication mechanisms.
+
+### Response Formats
+
+Most API endpoints return JSON responses with the following structure:
+
+```json
+{
+  "response": "The generated response from the model",
+  "sources": "Original text sources from the document (when available)",
+  "show_sources_button": true,
+  "status": "success"
+}
+Error responses follow this format:
+{
+  "error": "Error message",
+  "details": "Additional error details (when available)",
+  "status": "error"
+}
+```
 ### Example API Usage
 
 ```python
@@ -281,6 +310,7 @@ data = {'msg': 'What is in this document?'}
 response = requests.post(message_url, data=data)
 print(response.json()['response'])
 ```
+
 ---
 ## Troubleshooting
 
