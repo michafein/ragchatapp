@@ -117,12 +117,12 @@ For production use or custom configurations, see the detailed [Installation](#in
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/michafein/ragchatapp.git
-cd ragchatapp
+   git clone https://github.com/michafein/ragchatapp.git
+   cd ragchatapp
 ```
 
 2. **Create and activate a virtual environment**:
-   ```bash
+```bash
    # On Linux/macOS
    python -m venv venv
    source venv/bin/activate
@@ -130,12 +130,12 @@ cd ragchatapp
    # On Windows
    python -m venv venv
    venv\Scripts\activate
-   ```
+```
 
 3. **Install dependencies**:
-   ```bash
+```bash
    pip install -r requirements.txt
-   ```
+```
 
 4. **Set up LM-Studio**:
    - Download and install [LM-Studio](https://lmstudio.ai/)
@@ -161,12 +161,12 @@ cd ragchatapp
 ### Option 2: Docker Deployment
 
 1. **Build the Docker image**:
-   ```bash
+```bash
    docker build -t ragchatapp .
-   ```
+```
 
 2. **Run the container**:
-   ```bash
+```bash
    docker run -p 5000:5000 \
      -v ./uploads:/app/uploads \
      -v ./embeddings:/app/embeddings \
@@ -174,15 +174,15 @@ cd ragchatapp
      -v ./logs:/app/logs \
      --name ragchatapp \
      ragchatapp
-   ```
+```
 
 3. **Access the application**:
    - Open your browser and navigate to [http://localhost:5000](http://localhost:5000)
 
 4. **Alternatively, use Docker Compose**:
-   ```bash
+```bash
    docker-compose up -d
-   ```
+```
    **Note:** A sample `docker-compose.yml` file is provided in the repository.
 ---
 
@@ -192,9 +192,9 @@ cd ragchatapp
 
  **Start the Flask Server**:
    - Run the following command in your terminal:
-     ```bash
+   ```bash
      python app.py
-     ```
+   ```
 
  **Access the application**:
    - Open your browser and navigate to [http://localhost:5000](http://localhost:5000)
@@ -371,13 +371,13 @@ If you're still experiencing problems:
 Run the test suite to verify functionality:
 
 ```bash
-python -m pytest
+   python -m pytest
 ```
 
 For more detailed test output:
 
 ```bash
-python -m pytest -v
+   python -m pytest -v
 ```
 ---
 ## Security Features
