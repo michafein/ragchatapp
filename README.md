@@ -185,7 +185,8 @@ For production use or custom configurations, see the detailed [Installation](#in
 ```bash
    docker-compose up -d
 ```
-   **Note:** A sample `docker-compose.yml` file is provided in the repository.
+   ***Note:*** A sample `docker-compose.yml` file is provided in the repository.
+   
 ---
 
 ## Usage
@@ -216,6 +217,7 @@ For production use or custom configurations, see the detailed [Installation](#in
    - Click "Show Sources" to see where information was retrieved from
    - Each source shows the document name, page number, and relevant text
 
+---
 
 ## Folder Structure
 
